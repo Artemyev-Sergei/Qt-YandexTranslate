@@ -20,13 +20,13 @@ public:
     void getSupportedLanguages();   // Get the list of supported languages and show them in comboBoxes.
 
 public slots:
-    void detectLanguage();
-    void translate();
+    void detectLanguage();  // Detect a source language and show the result in a corresponding comboBox.
+    void translate();   // Translate some text and show the result.
 
 private:
     Ui::YandexTranslate *ui;
 
-    QString api_key;    // Put your API key here.
+    QString api_key = "";    // Put your API key here.
     QMap<QString, QString> languages; // Supported languages are values, their codes are keys.
     //QStringList directions; // Deprecated: Translation directions.
 };
