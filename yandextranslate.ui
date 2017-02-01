@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>650</width>
+    <width>620</width>
     <height>250</height>
    </rect>
   </property>
@@ -101,6 +101,13 @@
          </spacer>
         </item>
         <item>
+         <widget class="QPushButton" name="dictionaryButton">
+          <property name="text">
+           <string>Search in the dictionary</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="translateButton">
           <property name="text">
            <string>Translate</string>
@@ -134,7 +141,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>650</width>
+     <width>620</width>
      <height>21</height>
     </rect>
    </property>
