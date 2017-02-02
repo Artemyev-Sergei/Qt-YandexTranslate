@@ -14,6 +14,7 @@
 #include <QJsonValue>
 
 #include <QMessageBox>
+#include <QDebug>
 
 YandexTranslate::YandexTranslate(QWidget *parent) :
     QMainWindow(parent),
@@ -277,6 +278,7 @@ void YandexTranslate::getDictionaryEntry()
     for (QJsonValue v : def)
     {
         QJsonObject o = v.toObject();
+        //qDebug() << o.keys();
         if(o.contains("text"))  // Text of the entry, translation, synonym, etc.
         {
             qDebug() << o.value("text").toString();
@@ -295,6 +297,7 @@ void YandexTranslate::getDictionaryEntry()
             for (QJsonValue val : tr)
             {
                 QJsonObject obj = val.toObject();
+                //qDebug() << obj.keys();
                 if(obj.contains("text"))// Text of the entry, translation, synonym, etc.
                 {
                     qDebug() << obj.value("text").toString();
@@ -303,7 +306,7 @@ void YandexTranslate::getDictionaryEntry()
                 {
                     qDebug() << obj.value("pos").toString();
                 }
-                if(obj.contains("asp")) // The aspect for a verb.
+                if(obj.contains("asp")) // The aspect of a verb.
                 {
                     qDebug() << obj.value("asp").toString();
                 }
@@ -337,6 +340,7 @@ void YandexTranslate::getDictionaryEntry()
                     for(QJsonValue value : ex)
                     {
                         QJsonObject object = value.toObject();
+                        //qDebug() << object.keys();
                         if(object.contains("text")) // Text of the entry, translation, synonym, etc.
                         {
                             qDebug() << object.value("text").toString();

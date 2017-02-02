@@ -13,8 +13,10 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        yandextranslate.cpp
+        yandextranslate.cpp \
+    dictionaryentry.cpp
 
-HEADERS  += yandextranslate.h
+HEADERS  += yandextranslate.h \
+    dictionaryentry.h
 
 FORMS    += yandextranslate.ui
