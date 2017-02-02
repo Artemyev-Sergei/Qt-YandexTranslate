@@ -34,7 +34,7 @@ private:
 
     // Dictionary API
     QString dict_api_key = "";   // Put your Dictionary API key here.
-    QStringList directions; // Translation directions.
+    QStringList directions; // Translation directions. They can be "en-en", "ru-ru", for example, but we don't consider this case.
 };
 
 #endif // YANDEXTRANSLATE_H

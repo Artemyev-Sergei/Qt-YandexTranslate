@@ -61,27 +61,25 @@ void YandexTranslate::getSupportedLanguages()
     // Parse the reply.
     QByteArray bytes = reply->readAll();
     QJsonObject obj = QJsonDocument::fromJson(bytes).object();  // Keys are ("dirs", "langs")
-
     // qDegub() << obj.keys();  // Use it to check the keys.
 
     // Check the response codes.
-    if(obj.contains("code") || obj.contains("message"))
+    if(obj.contains("code") && obj.contains("message"))
     {
         QMessageBox::information(this,QString::number(obj.value("code").toDouble()),obj.value("message").toString());
         return;
     }
 
-    QJsonObject langs = obj.value("langs").toObject();  // Codes and Languages.
-
-    /* Use the following commented line to check the type of an object.
+    /* Use the following commented line to check the type of an object
+     * when you are not sure.
      * There're also such functions as isArray(), isDouble(), etc.
-     * See Qt Documentation for more examples.
-     */
+     * See Qt Documentation for more examples. */
     //qDebug() << obj.value("langs").isObject();
 
+    QJsonObject langs = obj.value("langs").toObject();
     for(const QString& code : langs.keys())
     {
-        QString lang = langs.value(code).toString();
+        QString lang = langs.value(code).toString();    // "lang" is a full name of a language.
         languages[code] = lang;
         // Fill comboBoxes with initial data.
         ui->comboBoxSource->addItem(lang);
@@ -116,16 +114,9 @@ void YandexTranslate::detectLanguage()
     QJsonObject obj = QJsonDocument::fromJson(bytes).object();  // Keys are ("code", "lang")
 
     // Check the response codes.
-    switch(int(obj.value("code").toDouble()))
+    if(obj.contains("code") && obj.contains("message"))
     {
-    case 200: break;
-    case 401:
-    case 402:
-    case 404:
         QMessageBox::information(this,QString::number(obj.value("code").toDouble()),obj.value("message").toString());
-        return;
-    default:
-        QMessageBox::information(this,"Unknown","Something unexpected happened");
         return;
     }
 
@@ -166,23 +157,13 @@ void YandexTranslate::translate()
     QJsonObject obj = QJsonDocument::fromJson(bytes).object();  // Keys are ("code", "lang", "text")
 
     // Check the response codes.
-    switch(int(obj.value("code").toDouble()))
+    if(obj.contains("code") && obj.contains("message"))
     {
-    case 200: break;
-    case 401:
-    case 402:
-    case 404:
-    case 413:
-    case 422:
-    case 501:
         QMessageBox::information(this,QString::number(obj.value("code").toDouble()),obj.value("message").toString());
-        return;
-    default:
-        QMessageBox::information(this,"Unknown","Something unexpected happened");
         return;
     }
 
-    //QString dir = obj.value("lang").toString();   // Use the auto-defined translation direction if you need it.
+    //QString dir = obj.value("lang").toString();   // Use the auto-defined translation direction from the server.
 
     // Show the translated text.
     QJsonArray text = obj.value("text").toArray();
@@ -217,14 +198,13 @@ void YandexTranslate::getTranslationDirections()
 
     /* A different approach to parsing the reply:
      * you can check a type of the reply data
-     * in order to choose an appropriate strategy for the parsing process.
-     */
+     * in order to choose an appropriate strategy for the parsing process. */
     QJsonDocument doc = QJsonDocument::fromJson(bytes);
     if (doc.isObject())
     {
         QJsonObject obj = doc.object();
         // Check the response codes.
-        if(obj.contains("code") || obj.contains("message"))
+        if(obj.contains("code") && obj.contains("message"))
         {
             QMessageBox::information(this,QString::number(obj.value("code").toDouble()),obj.value("message").toString());
             return;
@@ -247,154 +227,134 @@ void YandexTranslate::getDictionaryEntry()
 
     QString dict_dir = languages.key(source_lang) + "-" + languages.key(target_lang);
 
-    /* The following condition is not necessary because
+    /* The following commented condition check is not necessary because
      * Dictionary API returns ERR_LANG_NOT_SUPPORTED code
      * if the specified translation direction is not supported.
-     * But, anyway, I want to leave it here for educational purposes.
-     */
-    if(!directions.contains(dict_dir))
+     * But, anyway, inasmuch as we have our translation directions,
+     * we could use it if we wanted to.
+     * if (!directions.contains(dict_dir)) ... */
+
+    // Create a request.
+    QUrl url(QString("https://dictionary.yandex.net/api/v1/dicservice.json/lookup?")
+             + QString("key=") + dict_api_key
+             + QString("&lang=") + dict_dir
+             + QString("&text=") + ui->SourceEdit->toPlainText()
+             //+ QString("&ui=") + <the language of the user's interface for displaying the dictionary entry>
+             //+ QString("&flags=") + <search options (bitmask of flags)>
+             );
+
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+    // Send the request.
+    QEventLoop loop;
+    QNetworkAccessManager manager;
+    connect(&manager, &QNetworkAccessManager::finished, &loop, &QEventLoop::quit);
+
+    // Receive a reply.
+    QNetworkReply* reply = manager.get(request);
+    loop.exec();
+
+    // Parse the reply.
+    QByteArray bytes = reply->readAll();
+
+    QJsonDocument doc = QJsonDocument::fromJson(bytes);\
+    QJsonObject obj = doc.object(); // Keys are ("def", "head")
+
+    // Check the response codes.
+    if(obj.contains("code") && obj.contains("message"))
     {
-        QMessageBox::information(this,"501","The specified translation direction is not supported.");
+        /* By the way, it seems like Dictionary API never returns
+         * ERR_OK code, i.e 200. This is strange because
+         * the code is yet mentioned in the documentation. */
+        QMessageBox::information(this,QString::number(obj.value("code").toDouble()),obj.value("message").toString());
         return;
     }
-    else    // else is unnecessary here but I leave it be.
+
+    //QJsonObject head = obj.value("head").toObject();    // Result header (not used).
+
+    QJsonArray def = obj.value("def").toArray();    // Dictionary entries.
+    for (QJsonValue v : def)
     {
-        // Create a request.
-        QUrl url(QString("https://dictionary.yandex.net/api/v1/dicservice.json/lookup?")
-                 + QString("key=") + dict_api_key
-                 + QString("&lang=")
-                 + dict_dir
-                 + QString("&text=") + ui->SourceEdit->toPlainText()
-                 //+ QString("&ui=") + <the language of the user's interface for displaying the dictionary entry>
-                 //+ QString("&flags=") + <search options (bitmask of flags)>
-                 );
-
-        QNetworkRequest request(url);
-        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-
-        // Send the request.
-        QEventLoop loop;
-        QNetworkAccessManager manager;
-        connect(&manager, &QNetworkAccessManager::finished, &loop, &QEventLoop::quit);
-
-        // Receive a reply.
-        QNetworkReply* reply = manager.get(request);
-        loop.exec();
-
-        // Parse the reply.
-        QByteArray bytes = reply->readAll();
-
-        QJsonDocument doc = QJsonDocument::fromJson(bytes);\
-        QJsonObject obj = doc.object(); // Keys are ("def", "head")
-
-        // Check the response codes.
-        if(obj.contains("code") || obj.contains("message"))
+        QJsonObject o = v.toObject();
+        if(o.contains("text"))  // Text of the entry, translation, synonym, etc.
         {
-            /* In fact, it seems like Dictionary API never returns
-             * ERR_OK code, i.e 200. This is strange because
-             * the code is yet mentioned in the documentation.
-             */
-            QMessageBox::information(this,QString::number(obj.value("code").toDouble()),obj.value("message").toString());
-            return;
+            qDebug() << o.value("text").toString();
         }
-
-        //QJsonObject head = obj.value("head").toObject();    // Result header (not used).
-
-        QJsonArray def = obj.value("def").toArray();
-        for (QJsonValue v : def)
+        if(o.contains("ts"))    // Transcription.
         {
-            QJsonObject o = v.toObject();
-            qDebug() << "First level def: " << o.keys();
-            if(o.contains("tr"))
+            qDebug() << o.value("ts").toString();
+        }
+        if(o.contains("pos"))   // Part of speech.
+        {
+            qDebug() << o.value("pos").toString();
+        }
+        if(o.contains("tr"))    // Translations.
+        {
+            QJsonArray tr = o.value("tr").toArray();
+            for (QJsonValue val : tr)
             {
-                qDebug() << "tr";
-                QJsonArray tr = o.value("tr").toArray();
-                for (QJsonValue val : tr)
+                QJsonObject obj = val.toObject();
+                if(obj.contains("text"))// Text of the entry, translation, synonym, etc.
                 {
-                    QJsonObject obj = val.toObject();
-                    qDebug() << "Second level tr: " << obj.keys();
-                    if(obj.contains("text"))
+                    qDebug() << obj.value("text").toString();
+                }
+                if(obj.contains("pos")) // Part of speech.
+                {
+                    qDebug() << obj.value("pos").toString();
+                }
+                if(obj.contains("asp")) // The aspect for a verb.
+                {
+                    qDebug() << obj.value("asp").toString();
+                }
+                if(obj.contains("num")) // The form of a noun and its variations: plural, etc.
+                {
+                    qDebug() << obj.value("num").toString();
+                }
+                if(obj.contains("gen")) // Gender.
+                {
+                    qDebug() << obj.value("gen").toString();
+                }
+                if(obj.contains("syn")) // Synonyms.
+                {
+                    QJsonArray syn = obj.value("syn").toArray();
+                    for(QJsonValue value : syn)
                     {
-                        qDebug() << "text";
-                        qDebug() << obj.value("text").toString();
+                        qDebug() << value.toObject().value("text").toString();
                     }
-                    if(obj.contains("pos"))
+                }
+                if(obj.contains("mean"))// Meanings.
+                {
+                    QJsonArray mean = obj.value("mean").toArray();
+                    for(QJsonValue value : mean)
                     {
-                        qDebug() << "pos";
-                        qDebug() << obj.value("pos").toString();
+                        qDebug() << value.toObject().value("text").toString();
                     }
-                    if(obj.contains("mean"))
+                }
+                if(obj.contains("ex"))  // Usage examples.
+                {
+                    QJsonArray ex = obj.value("ex").toArray();
+                    for(QJsonValue value : ex)
                     {
-                        qDebug() << "mean";
-                        QJsonArray mean = obj.value("mean").toArray();
-                        for(QJsonValue value : mean)
+                        QJsonObject object = value.toObject();
+                        if(object.contains("text")) // Text of the entry, translation, synonym, etc.
                         {
-                            qDebug() << value.toObject().value("text").toString();
+                            qDebug() << object.value("text").toString();
                         }
-                    }
-                    if(obj.contains("gen"))
-                    {
-                        qDebug() << "gen";
-                        qDebug() << obj.value("gen").toString();
-                    }
-                    if(obj.contains("syn"))
-                    {
-                        qDebug() << "syn";
-                        QJsonArray syn = obj.value("syn").toArray();
-                        for(QJsonValue value : syn)
+                        if(object.contains("tr"))   // Translations.
                         {
-                            qDebug() << value.toObject().value("text").toString();
+                            QJsonArray transl = object.value("tr").toArray();
+                            for (QJsonValue tr_value : transl)
+                            {
+                                if(object.contains("text"))
+                                {
+                                    qDebug() << tr_value.toObject().value("text").toString();
+                                }
+                            }
                         }
-                    }
-                    if(obj.contains("ex"))
-                    {
-                        qDebug() << "ex";
-                        QJsonArray ex = obj.value("ex").toArray();
-                        for(QJsonValue value : ex)
-                        {
-                            QJsonObject object = value.toObject();
-                            qDebug() << object.keys();
-                            qDebug() << "Third level ex: ";
-                        }
-                    }
-                    if(obj.contains("asp"))
-                    {
-                        qDebug() << "asp";
-                        qDebug() << obj.value("asp").toString();    //
                     }
                 }
             }
-            if(o.contains("text"))
-            {
-                qDebug() << "text";
-                qDebug() << o.value("text").toString();
-
-            }
-            if(o.contains("pos"))
-            {
-                qDebug() << "pos";
-                qDebug() << o.value("pos").toString();
-            }
-            if(o.contains("ts"))
-            {
-                qDebug() << "ts";
-                qDebug() << o.value("ts").toString();
-            }
-            //qDebug() << v.isArray() << v.isBool() << v.isDouble() << v.isNull() << v.isObject() << v.isString() << v.isUndefined();
-            //qDebug() << v.toObject().contains("tr") << v.toObject().contains("text") << v.toObject().contains("pos");
-            //qDebug() << v.toObject().contains("ex") << v.toObject().contains("syn")  << v.toObject().contains("mean");
         }
-
-        //qDebug() << def.size();
-
-        /*
-        // Show the dictionary entry.
-        QJsonArray text = obj.value("text").toArray();
-        ui->TargetEdit->clear();
-        for(QJsonValue v : text)
-        {
-            ui->TargetEdit->append(v.toString());
-        }
-        */
     }
 }
