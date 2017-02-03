@@ -16,6 +16,8 @@
 #include <QMessageBox>
 #include <QDebug>
 
+#include "dictionaryentry.h"
+
 YandexTranslate::YandexTranslate(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::YandexTranslate)
@@ -277,53 +279,64 @@ void YandexTranslate::getDictionaryEntry()
     QJsonArray def = obj.value("def").toArray();    // Dictionary entries.
     for (QJsonValue v : def)
     {
+        DictionaryEntry entry;
         QJsonObject o = v.toObject();
         //qDebug() << o.keys();
-        if(o.contains("text"))  // Text of the entry, translation, synonym, etc.
+        if(o.contains("text"))  // Text of an entry.
         {
-            qDebug() << o.value("text").toString();
+            //qDebug() << o.value("text").toString();
+            entry.setText(o.value("text").toString());
         }
         if(o.contains("ts"))    // Transcription.
         {
-            qDebug() << o.value("ts").toString();
+            //qDebug() << o.value("ts").toString();
+            entry.setTranscription(o.value("ts").toString());
         }
         if(o.contains("pos"))   // Part of speech.
         {
-            qDebug() << o.value("pos").toString();
+            //qDebug() << o.value("pos").toString();
+            entry.setPartOfSpeech(o.value("pos").toString());
         }
         if(o.contains("tr"))    // Translations.
         {
             QJsonArray tr = o.value("tr").toArray();
             for (QJsonValue val : tr)
             {
+                Translation translation;
                 QJsonObject obj = val.toObject();
                 //qDebug() << obj.keys();
-                if(obj.contains("text"))// Text of the entry, translation, synonym, etc.
+                if(obj.contains("text"))// Text of a translation.
                 {
-                    qDebug() << obj.value("text").toString();
+                    //qDebug() << obj.value("text").toString();
+                    translation.setText(obj.value("text").toString());
                 }
                 if(obj.contains("pos")) // Part of speech.
                 {
-                    qDebug() << obj.value("pos").toString();
+                    //qDebug() << obj.value("pos").toString();
+                    translation.setPartOfSpeech(obj.value("pos").toString());
                 }
                 if(obj.contains("asp")) // The aspect of a verb.
                 {
-                    qDebug() << obj.value("asp").toString();
+                    //qDebug() << obj.value("asp").toString();
+                    translation.setAspect(obj.value("asp").toString());
                 }
                 if(obj.contains("num")) // The form of a noun and its variations: plural, etc.
                 {
-                    qDebug() << obj.value("num").toString();
+                    //qDebug() << obj.value("num").toString();
+                    translation.setNounForm(obj.value("num").toString());
                 }
                 if(obj.contains("gen")) // Gender.
                 {
-                    qDebug() << obj.value("gen").toString();
+                    //qDebug() << obj.value("gen").toString();
+                    translation.setGender(obj.value("gen").toString());
                 }
                 if(obj.contains("syn")) // Synonyms.
                 {
                     QJsonArray syn = obj.value("syn").toArray();
                     for(QJsonValue value : syn)
                     {
-                        qDebug() << value.toObject().value("text").toString();
+                        //qDebug() << value.toObject().value("text").toString();
+                        translation.addSynonym(value.toObject().value("text").toString());
                     }
                 }
                 if(obj.contains("mean"))// Meanings.
@@ -331,7 +344,8 @@ void YandexTranslate::getDictionaryEntry()
                     QJsonArray mean = obj.value("mean").toArray();
                     for(QJsonValue value : mean)
                     {
-                        qDebug() << value.toObject().value("text").toString();
+                        //qDebug() << value.toObject().value("text").toString();
+                        translation.addMeaning(value.toObject().value("text").toString());
                     }
                 }
                 if(obj.contains("ex"))  // Usage examples.
@@ -339,11 +353,13 @@ void YandexTranslate::getDictionaryEntry()
                     QJsonArray ex = obj.value("ex").toArray();
                     for(QJsonValue value : ex)
                     {
+                        Example example;
                         QJsonObject object = value.toObject();
                         //qDebug() << object.keys();
-                        if(object.contains("text")) // Text of the entry, translation, synonym, etc.
+                        if(object.contains("text")) // Text of an example.
                         {
-                            qDebug() << object.value("text").toString();
+                            //qDebug() << object.value("text").toString();
+                            example.setText(object.value("text").toString());
                         }
                         if(object.contains("tr"))   // Translations.
                         {
@@ -352,13 +368,17 @@ void YandexTranslate::getDictionaryEntry()
                             {
                                 if(object.contains("text"))
                                 {
-                                    qDebug() << tr_value.toObject().value("text").toString();
+                                    //qDebug() << tr_value.toObject().value("text").toString();
+                                    example.addTranslation(tr_value.toObject().value("text").toString());
                                 }
                             }
                         }
+                        translation.addExample(example);
                     }
                 }
+                entry.addTranslation(translation);
             }
         }
+        entry.showEntry();
     }
 }
