@@ -5,7 +5,6 @@
 #include <QString>
 #include <QStringList>
 
-
 class Example
 {
 public:
@@ -15,7 +14,7 @@ public:
     void setText(QString& text_)        { text = text_; }
     void addTranslation(QString& tr_)   { translations << tr_; }
 
-    void showExample();
+    void showExample(); // Show a usage example.
 private:
     QString text;               // Text of an example.
     QStringList translations;   // Translations of the text of an example.
@@ -30,13 +29,13 @@ public:
     void setText(QString& text_)        { text = text_; }
     void setPartOfSpeech(QString& pos_) { pos = pos_; }
     void setAspect(QString& asp_)       { asp = asp_; }
-    void setNounForm(QString& num_)     { text = num_; }
-    void setGender(QString& gen_)       { text = gen_; }
+    void setNounForm(QString& num_)     { num = num_; }
+    void setGender(QString& gen_)       { gen = gen_; }
     void addSynonym(QString& syn_)      { synonyms << syn_; }
     void addMeaning(QString& mean_)     { meanings << mean_; }
     void addExample(Example& example_)  { examples.push_back(example_); }
 
-    void showTranslation();
+    void showTranslation(); // Show a translation.
 private:
     QString text;   // Translation text.
     QString pos;    // Part of speech.
@@ -59,7 +58,7 @@ public:
     void setPartOfSpeech(QString& pos_)     { pos = pos_; }
     void addTranslation(Translation& tr_)   { translations.push_back(tr_); }
 
-    void showEntry();
+    void showEntry();   // Show a dictionary entry.
 private:
     QString text;   // A word which you wanted to find a dictionary entry for.
     QString ts;     // Transcription.
